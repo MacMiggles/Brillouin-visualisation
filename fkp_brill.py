@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import ConvexHull
+from itertools import combinations
 
 
 #Gitter
@@ -90,21 +91,54 @@ cleaned_mid_points = temp_points
 
 
 mid_points = np.array(cleaned_mid_points)
+
+
+
+#Ebene bauen.
+
+ebenen = []
+
+for mid in mid_points:
+    G = 2 * mid
+    d = np.dot(G, mid) 
+    ebenen.append((G, d))
     
 
 
+vertices = []
+tol2 = 1e-6
+
+for(n1, d1), (n2, d2), (n3, d3) in combinations(ebenen, 3):
+
+    A = np.vstack([n1, n2, n3])
+    b = np.array([d1, d2, d3])
+
+    if abs(np.linalg.det(A)) < tol:
+        continue
+
+    k = np.linalg.solve(A, b)
+
+    inside = True
+    for n, d in ebenen:
+        if np.dot(n, k) > d + tol:
+            inside = False
+            break
+    if inside:
+        vertices.append(k)
 
 
-#Ebene bauen. 
 
-hull = ConvexHull(mid_points)
+vertices = np.unique(np.round(vertices, 8), axis=0)
 
+
+hull = ConvexHull(vertices)
 
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-faces = [mid_points[simplex] for simplex in hull.simplices]
+
+faces = [vertices[simplex] for simplex in hull.simplices]
 
 poly = Poly3DCollection(faces, facecolor='lightblue', edgecolor='k', alpha=0.7)
 
